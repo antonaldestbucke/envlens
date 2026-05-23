@@ -77,3 +77,22 @@ func TestResult_HasDiff(t *testing.T) {
 		t.Error("expected HasDiff to be true")
 	}
 }
+
+func TestCompare_BothMissingAndExtraKeys(t *testing.T) {
+	// Target is missing DB_PORT and SECRET_KEY, but has an unexpected CACHE_URL.
+	target := map[string]string{
+		"APP_ENV":   "staging",
+		"DB_HOST":   "db.internal",
+		"CACHE_URL": "redis://localhost",
+	}
+	result := comparator.Compare(ref(), target, "staging")
+	if len(result.MissingKeys) != 2 {
+		t.Errorf("expected 2 missing keys, got %d: %v", len(result.MissingKeys), result.MissingKeys)
+	}
+	if len(result.ExtraKeys) != 1 || result.ExtraKeys[0] != "CACHE_URL" {
+		t.Errorf("expected [CACHE_URL] as extra keys, got %v", result.ExtraKeys)
+	}
+	if !result.HasDiff() {
+		t.Error("expected HasDiff to be true when both missing and extra keys exist")
+	}
+}
