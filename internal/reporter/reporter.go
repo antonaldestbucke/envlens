@@ -84,3 +84,19 @@ func keysToJSONArray(keys []string) string {
 	}
 	return "[" + strings.Join(quoted, ", ") + "]"
 }
+
+// Summary returns a brief human-readable summary of the report, indicating
+// how many targets were checked and how many had differences.
+func Summary(report Report) string {
+	total := len(report.Results)
+	diffCount := 0
+	for _, result := range report.Results {
+		if len(result.Missing) > 0 || len(result.Extra) > 0 {
+			diffCount++
+		}
+	}
+	if diffCount == 0 {
+		return fmt.Sprintf("%d/%d targets in sync", total, total)
+	}
+	return fmt.Sprintf("%d/%d targets have differences", diffCount, total)
+}
