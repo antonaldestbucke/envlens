@@ -2,7 +2,11 @@
 // reference, optionally flagging keys that appear only in some sources.
 package merger
 
-import "github.com/user/envlens/internal/loader"
+import (
+	"sort"
+
+	"github.com/user/envlens/internal/loader"
+)
 
 // Result holds the merged key set and metadata about key origin.
 type Result struct {
@@ -15,6 +19,7 @@ type Result struct {
 // Merge combines the key sets from all loaded env files into a single Result.
 // Keys present in every source are considered "complete"; keys present in only
 // some sources are recorded in Partial so callers can surface warnings.
+// The returned Keys slice is sorted alphabetically for deterministic output.
 func Merge(envs []loader.Env) Result {
 	seen := make(map[string][]string) // key -> source names
 
@@ -35,6 +40,8 @@ func Merge(envs []loader.Env) Result {
 		}
 	}
 
+	sort.Strings(keys)
+
 	return Result{
 		Keys:    keys,
 		Partial: partial,
@@ -45,4 +52,21 @@ func Merge(envs []loader.Env) Result {
 func (r Result) IsPartial(k string) bool {
 	_, ok := r.Partial[k]
 	return ok
+}
+
+// MissingFrom returns the list of source names that do not define key k.
+// If k is present in all sources, it returns nil.
+func (r Result) MissingFrom(k string, allSources []string) []string {
+	present := make(map[string]bool, len(r.Partial[k]))
+	for _, s := range r.Partial[k] {
+		present[s] = true
+	}
+
+	var missing []string
+	for _, s := range allSources {
+		if !present[s] {
+			missing = append(missing, s)
+		}
+	}
+	return missing
 }
